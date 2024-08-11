@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "Social Network Analyzer"
+version = "0.1.0"
+description = ""
+authors = ["DanilKuznetcov <dankuziur@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^2.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
