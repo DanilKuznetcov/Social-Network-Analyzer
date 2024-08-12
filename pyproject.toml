@@ -4,10 +4,12 @@ version = "0.1.0"
 description = ""
 authors = ["DanilKuznetcov <dankuziur@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = "^2.0.1"
+fire = "^0.6.0"
 
 
 [build-system]
