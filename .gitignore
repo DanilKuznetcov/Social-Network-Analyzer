@@ -1,2 +1,4 @@
 /.idea/*
 /conda_env/*
+__pycache__/
+api_key.py
