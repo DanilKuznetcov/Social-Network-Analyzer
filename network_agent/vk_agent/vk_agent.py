@@ -18,14 +18,14 @@ class VKAgent:
             'access_token': self.API_KEY,
             # Without count vk return only 30. Maximum count = 200
             'count': 200,
-            'start_time': time.mktime(start.timetuple()),
-            'end_time': time.mktime(end.timetuple()),
+            'start_time': int(time.mktime(start.timetuple())),
+            'end_time': int(time.mktime(end.timetuple())),
             'q': topic,
             'v': self.API_V,
             'start_from': start_from,
         }
         # ['Response'] contain ['count', 'items', 'next_from', 'total_count']
-        return requests.get(self.API_METHOD, params).json()['response']
+        yield requests.get(self.API_METHOD, params).json()['response']
 
     def modify_post(self, post):
         # 'Item' contain ['inner_type', 'comments', 'marked_as_ads', 'type', 'attachments',
@@ -39,54 +39,58 @@ class VKAgent:
                 post[metric] = post[metric]['count']
 
     def vk_get_package(self, topic: str, start: time, end: time):
-        # Package limit is 1000, more will be skipped
-        package = []
         next_from = ''
         while True:
-            resp = self.vk_get_request(topic, start, end, next_from)
-            # In-built posts modification for reductions API req
-            for post in resp['items']:
-                self.modify_post(post)
-            package.extend(resp['items'])
-            if 'next_from' not in resp:
-                break
-            next_from = resp['next_from']
-        return package
+            for resp in self.vk_get_request(topic, start, end, next_from):
+                for post in resp['items']:
+                    self.modify_post(post)
+                    yield post
+                if 'next_from' not in resp:
+                    return
+                next_from = resp['next_from']
+    
 
     def specify_time_periods(self, topic: str, start: time, end: time):
-        # Time period should contain less 1000 posts
+        # Time period should contain <1000 posts
         periods = []
         delta = timedelta(hours=8)
 
         while start < end:
             cur_end = min(start + delta, end)
-            total_count = self.vk_get_request(topic, start, cur_end)['total_count']
+            
+            # Получаем первый элемент генератора
+            gen = self.vk_get_request(topic, start, cur_end)
+            resp = next(gen, None)
+
+            if resp is None:
+                break  # Нет данных — заканчиваем
+
+            total_count = resp.get('total_count', 0)
 
             if total_count > 1000:
                 delta -= timedelta(hours=1)
                 continue
             elif total_count < 600:
-                # Too small petiod entails exceeding limit in 5 API req/sec
                 delta += timedelta(hours=1)
 
             periods.append((start, cur_end))
             start = cur_end
+
         return periods
 
     def vk_get_data(self, topic: str, start: time, end: time):
-        data = []
         periods = self.specify_time_periods(topic, start, end)
         for start, end in periods:
-            package = self.vk_get_package(topic, start, end)
-            data.extend(package)
-        return data
+            for post in self.vk_get_package(topic, start, end):
+                yield post
 
 
 if __name__ == '__main__':
     topic = 'COVID-19'
-    start = datetime(2022, 8, 11, 11)
-    end = datetime(2022, 8, 11, 12)
+    start = datetime(2024, 8, 11, 11)
+    end = datetime(2024, 8, 11, 12)
 
     agent = VKAgent()
     data = agent.vk_get_data(topic, start, end)
-    print(f"11.08.2022 11:00 were published: \n {data[1:2]}")
+    # print(f"11.08.2024 11:00 were published: \n {data[1:2]}")
+    print(len(list(data)))
