@@ -2,7 +2,7 @@ import time
 import requests
 from datetime import datetime, timedelta
 
-from api_key import ACCESS_TOKEN
+from network_agent.vk_agent.api_key import ACCESS_TOKEN
 
 
 class VKAgent:
@@ -87,7 +87,7 @@ class VKAgent:
 
         return periods
 
-    def vk_get_data(self, topic: str, start: time, end: time):
+    def vk_post_generator(self, topic: str, start: time, end: time):
         periods = self.specify_time_periods(topic, start, end)
         for start, end in periods:
             for post in self.vk_get_package(topic, start, end):
@@ -100,6 +100,6 @@ if __name__ == "__main__":
     end = datetime(2024, 8, 11, 12)
 
     agent = VKAgent()
-    data = agent.vk_get_data(topic, start, end)
+    data = agent.vk_post_generator(topic, start, end)
     # print(f"11.08.2024 11:00 were published: \n {data[1:2]}")
     print(len(list(data)))
