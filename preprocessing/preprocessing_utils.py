@@ -5,6 +5,8 @@ from pymystem3 import Mystem
 import nltk
 from nltk.corpus import stopwords
 from string import punctuation
+import numpy as np
+
 
 warnings.filterwarnings("ignore")
 
@@ -130,6 +132,46 @@ class TextPreprocessor:
                     text_field: processed,
                     # 'original_text': original_text  # Optionally keep original
                 }
+
+
+def collect_text_length_statistics(posts: Iterator[Dict]) -> Dict[str, float]:
+    """
+    Собирает базовую статистику по длине текстов в постах.
+
+    Args:
+        posts: Итератор словарей, каждый словарь должен содержать ключ 'text'.
+
+    Returns:
+        Словарь со статистикой: общее количество постов, средняя длина, медиана,
+        минимум, максимум, и основные квантильные значения.
+    """
+    lengths = []
+
+    for post in posts:
+        text = post.get("text", "")
+        lengths.append(len(text))
+
+    if not lengths:
+        return {}
+
+    lengths = np.array(lengths)
+
+    stats = {
+        "total_posts": int(len(lengths)),
+        "mean_length": float(np.mean(lengths)),
+        "median_length": float(np.median(lengths)),
+        "min_length": int(np.min(lengths)),
+        "max_length": int(np.max(lengths)),
+        "5_percentile": int(np.quantile(lengths, 0.05)),
+        "10_percentile": int(np.quantile(lengths, 0.10)),
+        "25_percentile": int(np.quantile(lengths, 0.25)),
+        "50_percentile": int(np.quantile(lengths, 0.50)),
+        "75_percentile": int(np.quantile(lengths, 0.75)),
+        "90_percentile": int(np.quantile(lengths, 0.90)),
+        "95_percentile": int(np.quantile(lengths, 0.95)),
+    }
+
+    return stats
 
 
 # Example usage
