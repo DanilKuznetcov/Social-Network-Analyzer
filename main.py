@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from network_agent import VKAgent
 from preprocessing.preprocessing_utils import (
@@ -9,27 +9,37 @@ from csv_adapter.csv_utils import CSVPostWriter
 
 
 topic = "высшее образование"
-start = datetime(2024, 2, 1)
-end = datetime(2024, 2, 8)
+start = datetime(2024, 1, 1)
+end = datetime(2025, 1, 1)
 
-agent = VKAgent()
-VK_generator = agent.vk_post_generator(topic, start, end)
+current = start
 
-preprocessor = TextPreprocessor(
-    custom_stopwords_path="preprocessing/all_stop_words.txt"
-)
-preprocessor_generator = preprocessor.preprocess_generator(VK_generator)
+while current < end:
+    # Гарантировано получаем начало следующего месяца
+    next_month = (current.replace(day=28) + timedelta(days=4)).replace(day=1)
+    # Получаем конец диапазона
+    month_end = min(next_month, end)
 
-# Собираем статистику
-stats = collect_text_length_statistics(preprocessor_generator)
+    print(f"\n=== Обработка: {current.date()} — {month_end.date()} ===")
 
-# Красиво печатаем
-for key, value in stats.items():
-    print(f"{key}: {value}")
+    agent = VKAgent()
+    VK_generator = agent.vk_post_generator(topic, current, month_end)
 
-# print(list(preprocessor_generator))
-# print(len(list(preprocessor_generator)))
+    preprocessor = TextPreprocessor(
+        custom_stopwords_path="preprocessing/all_stop_words.txt"
+    )
+    preprocessor_generator = preprocessor.preprocess_generator(VK_generator)
 
-# writer = CSVPostWriter(topic, start, end)
-# writer.write_posts(preprocessor_generator)
-# writer.close()
+    # stats = collect_text_length_statistics(preprocessor_generator)
+
+    # print(f"Статистика:")
+    # for key, value in stats.items():
+    #     print(f"{key}: {value}")
+
+    folder_name = f"{topic.replace(' ', '_')}: {current.date()} - {month_end.date()}"
+    writer = CSVPostWriter(folder_name=folder_name, with_original=True)
+
+    writer.write_posts(preprocessor_generator)
+    writer.close()
+
+    current = month_end

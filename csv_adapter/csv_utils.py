@@ -7,21 +7,14 @@ from typing import Iterator, Dict
 class CSVPostWriter:
     def __init__(
         self,
-        topic: str,
-        start: str,
-        end: str,
+        folder_name: str,
         root_dir: str = "data",
         max_lines_per_file: int = 5000,
+        with_original=False,
     ):
-        self.topic = topic
-        self.start = start
-        self.end = end
         self.max_lines = max_lines_per_file
 
-        self.output_dir = (
-            Path(root_dir)
-            / f"{self.topic}-{self.start.strftime('%Y_%m_%d')}-{self.end.strftime('%Y_%m_%d')}"
-        )
+        self.output_dir = Path(root_dir) / folder_name
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.current_file_index = 1
@@ -40,6 +33,9 @@ class CSVPostWriter:
             "comments",
             "text",
         ]
+
+        if with_original:
+            self.fields_order.append("original_text")
 
     def _open_new_file(self):
         if self.current_file:

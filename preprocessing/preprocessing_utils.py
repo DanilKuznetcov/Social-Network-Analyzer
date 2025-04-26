@@ -136,7 +136,7 @@ class TextPreprocessor:
                 yield {
                     **post,
                     text_field: processed,
-                    # 'original_text': original_text  # Optionally keep original
+                    "original_text": original_text,  # Optionally keep original
                 }
 
 
@@ -220,9 +220,7 @@ if __name__ == "__main__":
     ]
 
     # Initialize preprocessor
-    preprocessor = TextPreprocessor(
-        custom_stopwords_path="preprocessing/all_stop_words.txt"
-    )
+    preprocessor = TextPreprocessor(custom_stopwords_path="all_stop_words.txt")
 
     # Process posts lazily with min_likes=1
     processed_posts = preprocessor.preprocess_generator(
