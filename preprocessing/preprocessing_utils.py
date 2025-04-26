@@ -72,11 +72,12 @@ class TextPreprocessor:
         self,
         posts: Iterator[Dict[str, Any]],
         text_field: str = "text",
-        min_length: int = 1,
+        min_clear_length: int = 100,
         check_cyrillic: bool = True,
         check_emojis: bool = True,
         emoji_threshold: int = 10,
         min_likes: int = 0,
+        text_len_limits: tuple[int, int] = (500, 5000),
     ) -> Iterator[Dict[str, Any]]:
         """Lazily preprocess posts in dictionary format.
 
@@ -88,6 +89,7 @@ class TextPreprocessor:
             check_emojis: Whether to filter texts with too many emojis
             emoji_threshold: Maximum allowed emojis per text
             min_likes: Minimum number of likes to keep post
+            text_len_limits: Min and max len of raw text
 
         Yields:
             Post dictionaries with processed text (other fields unchanged)
@@ -101,15 +103,19 @@ class TextPreprocessor:
 
             original_text = post[text_field]
 
-            # Skip empty posts
-            if not original_text or len(original_text.strip()) < min_length:
+            # Skip posts with outstanging length
+            if (
+                not original_text
+                or len(original_text) < text_len_limits[0]
+                or len(original_text) > text_len_limits[1]
+            ):
                 continue
 
             # Clean text
             cleaned = self._clean_text(original_text)
 
             # Skip if text became too short after cleaning
-            if len(cleaned.strip()) < min_length:
+            if len(cleaned.strip()) < min_clear_length:
                 continue
 
             # Check cyrillic if enabled

@@ -15,13 +15,13 @@ end = datetime(2024, 2, 8)
 agent = VKAgent()
 VK_generator = agent.vk_post_generator(topic, start, end)
 
-# preprocessor = TextPreprocessor(
-#     custom_stopwords_path="preprocessing/all_stop_words.txt"
-# )
-# preprocessor_generator = preprocessor.preprocess_generator(VK_generator)
+preprocessor = TextPreprocessor(
+    custom_stopwords_path="preprocessing/all_stop_words.txt"
+)
+preprocessor_generator = preprocessor.preprocess_generator(VK_generator)
 
 # Собираем статистику
-stats = collect_text_length_statistics(VK_generator)
+stats = collect_text_length_statistics(preprocessor_generator)
 
 # Красиво печатаем
 for key, value in stats.items():
