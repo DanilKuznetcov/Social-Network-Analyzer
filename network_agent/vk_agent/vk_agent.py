@@ -1,6 +1,14 @@
 import time
 import requests
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Настройка вывода в консоль
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
 
 from network_agent.vk_agent.api_key import ACCESS_TOKEN
 
@@ -25,7 +33,7 @@ class VKAgent:
             "start_from": start_from,
         }
         # ['Response'] contain ['count', 'items', 'next_from', 'total_count']
-        yield requests.get(self.API_METHOD, params).json()["response"]
+        return requests.get(self.API_METHOD, params).json()["response"]
 
     def modify_post(self, post):
         # 'Item' contain ['inner_type', 'comments', 'marked_as_ads', 'type', 'attachments',
@@ -48,28 +56,28 @@ class VKAgent:
             elif isinstance(post[metric], dict) and "count" in post[metric]:
                 post[metric] = post[metric]["count"]
 
-    def vk_get_package(self, topic: str, start: time, end: time):
-        next_from = ""
-        while True:
-            for resp in self.vk_get_request(topic, start, end, next_from):
-                for post in resp["items"]:
-                    self.modify_post(post)
-                    yield post
-                if "next_from" not in resp:
-                    return
-                next_from = resp["next_from"]
+    def vk_get_posts(self, package: dict, topic: str, start: time, end: time):
 
-    def specify_time_periods(self, topic: str, start: time, end: time):
+        posts = package["items"]
+
+        while "next_from" in package:
+            next_from = package["next_from"]
+            package = self.vk_get_request(topic, start, end, next_from)
+            posts += package["items"]
+
+        for post in posts:
+            self.modify_post(post)
+            yield post
+
+    def vk_get_package(self, topic: str, start: time, end: time):
         # Time period should contain <1000 posts
-        periods = []
         delta = timedelta(hours=8)
 
         while start < end:
             cur_end = min(start + delta, end)
 
             # Получаем первый элемент генератора
-            gen = self.vk_get_request(topic, start, cur_end)
-            resp = next(gen, None)
+            resp = self.vk_get_request(topic, start, cur_end)
 
             if resp is None:
                 break  # Нет данных — заканчиваем
@@ -82,22 +90,19 @@ class VKAgent:
             elif total_count < 600:
                 delta += timedelta(hours=1)
 
-            periods.append((start, cur_end))
+            yield (resp, start, cur_end)
             start = cur_end
 
-        return periods
-
     def vk_post_generator(self, topic: str, start: time, end: time):
-        periods = self.specify_time_periods(topic, start, end)
-        for start, end in periods:
-            for post in self.vk_get_package(topic, start, end):
+        for package, start, end in self.vk_get_package(topic, start, end):
+            for post in self.vk_get_posts(package, topic, start, end):
                 yield post
 
 
 if __name__ == "__main__":
     topic = "COVID-19"
     start = datetime(2024, 8, 11, 11)
-    end = datetime(2024, 8, 11, 12)
+    end = datetime(2024, 8, 13, 12)
 
     agent = VKAgent()
     data = agent.vk_post_generator(topic, start, end)
